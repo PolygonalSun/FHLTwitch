@@ -102,6 +102,7 @@ var startVote = (timeoutInSeconds) => {
     votesGuilty = 0;
     votesNotGuilty = 0;
     seekingVerdict = true;
+    onVotesChanged();
     timeElapsed = setTimeout(() => {
         endVote();
     }, (timeoutInSeconds * 1000));
