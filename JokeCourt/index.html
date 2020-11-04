@@ -198,6 +198,7 @@
             if (textMeshMaxWidth){
                 const textMeshMinMax = BABYLON.Mesh.MinMax([textWriter.getMesh()]);
                 textWriter.getMesh().scaling.x = Math.min(1, textMeshMaxWidth/(textMeshMinMax.max.x - textMeshMinMax.min.x));
+                textWriter.getMesh().posiot
             }
             return textWriter;
         }
@@ -235,7 +236,7 @@
         /* setup default formatting values */
         let textScale = 1;
 
-        let offenderTextColorHex = "#FFFFFF";
+        let offenderTextColorHex = "#00FF00";
         let offenderTextHeight = 0.5;
         let offenderTextThickness = 0.001;
         let offenderTextPosition = new BABYLON.Vector3(-3, 2, 0);
@@ -286,6 +287,14 @@
         sentenceNotGuilty = () => {
             console.log("Not Guilty!");
         }
+
+        onVotesChanged = () => {
+            const voteCount = votesGuilty+votesNotGuilty
+            barGraphGuilty.setValue(votesGuilty/voteCount);
+            barGraphNotGuilty.setValue(votesNotGuilty/voteCount);
+        }
+
+
 
         /* return the initialized scene */
         return scene;
