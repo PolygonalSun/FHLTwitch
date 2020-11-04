@@ -289,9 +289,10 @@
         }
 
         onVotesChanged = () => {
+            console.log("Updating vote display...");
             const voteCount = votesGuilty+votesNotGuilty
-            barGraphGuilty.setValue(votesGuilty/voteCount);
-            barGraphNotGuilty.setValue(votesNotGuilty/voteCount);
+            barGraphGuilty.setValue(voteCount != 0 ? votesGuilty/voteCount : 0);
+            barGraphNotGuilty.setValue(voteCount != 0 ? votesNotGuilty/voteCount : 0);
         }
 
 
