@@ -54,7 +54,7 @@ export default class Main extends React.Component<Props, State> {
                     <Timer ws={this.ws}></Timer>
                     <ActionButtons ws={this.ws}></ActionButtons>
             </div>
-        )
+        )   
     }
 
      
