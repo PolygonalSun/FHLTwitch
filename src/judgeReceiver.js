@@ -21,6 +21,11 @@ var sentenceGuilty = () => { };
  * Callback for doing something when found not guilty
  */
 var sentenceNotGuilty = () => { };
+/**
+ *
+ * Callback for doing something when the vote tally changes
+ */
+var onVotesChanged = () => { };
 
 /**
  * Set user and string data, then use callback
@@ -57,6 +62,8 @@ var gatherVotes = (channel, tags, message, self) => {
                 break;
         }
     }
+
+    onVotesChanged();
 }
 
 /**
@@ -95,6 +102,7 @@ var startVote = (timeoutInSeconds) => {
     votesGuilty = 0;
     votesNotGuilty = 0;
     seekingVerdict = true;
+    onVotesChanged();
     timeElapsed = setTimeout(() => {
         endVote();
     }, (timeoutInSeconds * 1000));
