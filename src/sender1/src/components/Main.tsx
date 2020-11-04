@@ -15,7 +15,7 @@ interface State {
 
 export default class Main extends React.Component<Props, State> {
 
-    ws = new WebSocket('ws://localhost:3000/ws');
+    ws = new WebSocket("ws://127.0.0.1:7602");
 
     componentDidMount() {
         this.ws.onopen = () => {
