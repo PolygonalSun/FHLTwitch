@@ -55,7 +55,7 @@ export default class Main extends React.Component<Props, State> {
                     <ActionButtons ws={this.ws}></ActionButtons>
             </div>
         )   
-    }  
-  
-      
+    }
+
+     
 }
