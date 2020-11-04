@@ -195,10 +195,11 @@
                 }
             );
             textWriter.getMesh().rotate(BABYLON.Vector3.Right(), -Math.PI/2);
+
+            // TODO: Hacky fix to get text to fit within the bounds we want. We should instead be breaking up the text into multiple meshes, and parenting them to a shared transform.
             if (textMeshMaxWidth){
                 const textMeshMinMax = BABYLON.Mesh.MinMax([textWriter.getMesh()]);
                 textWriter.getMesh().scaling.x = Math.min(1, textMeshMaxWidth/(textMeshMinMax.max.x - textMeshMinMax.min.x));
-                textWriter.getMesh().posiot
             }
             return textWriter;
         }
@@ -239,15 +240,15 @@
         let offenderTextColorHex = "#00FF00";
         let offenderTextHeight = 0.5;
         let offenderTextThickness = 0.001;
-        let offenderTextPosition = new BABYLON.Vector3(-3, 2, 0);
+        let offenderTextPosition = new BABYLON.Vector3(-7.3, -0.75, 0);
         let offenderTextAlignmentString = "left";
-        let offenderTextMaxWidth = 14;
+        let offenderTextMaxWidth = 3.6;
 
         let jokeTextColorHex = "#00FF00";
         let jokeTextHeight = 1;
         let jokeTextThickness = 0.001;
-        let jokeTextPosition = new BABYLON.Vector3(0, -2, 0);
-        let jokeTextAlignmentString = "center";
+        let jokeTextPosition = new BABYLON.Vector3(-7, -2, 0);
+        let jokeTextAlignmentString = "left";
         let jokeTextMaxWidth = 14;
 
         /* Initialize placeholders for help formatting */
@@ -256,8 +257,8 @@
         /* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
         let jokeTextMesh = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColorHex, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth);
         let offenderTextMesh = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
-        let barGraphGuilty = makeBarGraph("Guilty", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
-        let barGraphNotGuilty = makeBarGraph("Not Guilty", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+        let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+        let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 
         barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
         barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
@@ -294,8 +295,6 @@
             barGraphGuilty.setValue(voteCount != 0 ? votesGuilty/voteCount : 0);
             barGraphNotGuilty.setValue(voteCount != 0 ? votesNotGuilty/voteCount : 0);
         }
-
-
 
         /* return the initialized scene */
         return scene;
