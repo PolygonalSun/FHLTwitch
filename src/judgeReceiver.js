@@ -109,10 +109,9 @@ var startVote = (timeoutInSeconds) => {
     votesNotGuilty = 0;
     seekingVerdict = true;
     onVotesChanged();
-    timeElapsed = 0;
+    timeElapsed = timeoutInSeconds;
     timer = setInterval(() => {
-        timeElapsed++;
-        if (timeElapsed === timeoutInSeconds) {
+        if (--timeElapsed === 0) {
             clearInterval(timer);
         }
     }, 1000);
