@@ -2,15 +2,13 @@ import * as React from "react";
 import "./timer.css"
 
 interface IProps {
-    //   products: string[];
     ws : WebSocket;
 }
 
 interface State {
-    //timeout :  
-//    quantities: { [key: string]: number };
     joke: string;
     name: string;
+    judgeName: string;
 }
 
 interface IJokeMessage {
@@ -24,26 +22,32 @@ interface IVerdictMessage {
     Verdict: boolean;
 }
 
+interface IJudgeNameMessage {
+    Type: string;
+    Username: string;
+}
 
 export default class ActionButtons extends React.Component<IProps, State> {
    
     state: Readonly<State> = {
-        // quantities: this.props.products.reduce((acc, product) => {
-        //     return acc;
-        // }, {})
         joke: "",
-        name: "John Doe"
+        name: "John Doe",
+        judgeName: "",
+
     }
 
     render() {
-
-        // const { products } = this.props;
-        // const { quantities } = this.state;
-
         return (
             <div >
+                 <p>
+                        <div style={{ right: "10px", height: "50px"}}  >
+                            <input  className={`button small-button`} name="offenderName" value={this.state.judgeName}  onChange={this.changeJudgeName} ></input>
+                            <button className={`button small-button`} onClick={this.sendJudgeName}>
+                            Set judge name
+                            </button>
+                        </div>
+                    </p>
                 <div id="Send Joke" >
-                    
                     <p>
                         <div style={{ float: "left", height: "50px"}}>
                             <label title="offenderNameLabel">Name</label>
@@ -67,10 +71,10 @@ export default class ActionButtons extends React.Component<IProps, State> {
                     <p>
                         <div  >
                             <button className={`button button-primary button-primary-active`} onClick={this.sendVerdict(true)}>
-                            Yay
+                            Guilty
                             </button>
                             <button className={`button`} onClick={this.sendVerdict(false)}>
-                            Nay
+                            Not guilty
                             </button>
                         </div>
                     </p>
@@ -88,29 +92,34 @@ export default class ActionButtons extends React.Component<IProps, State> {
 
     changeName = (event: React.ChangeEvent<HTMLInputElement>) => {
         this.setState({joke:this.state.joke, name: event.target.value })
-      }
-
-    sendJoke = () => {
-         
-           var message:IJokeMessage = {Type: "joke", Joke: this.state.joke, Name: this.state.name} ;
-            try {
-                console.log(message)
-                this.props.ws.send(JSON.stringify(message))
-               
-            } catch (error) {
-                console.log(error) // catch error
-            }
-        
     }
 
+    changeJudgeName = (event: React.ChangeEvent<HTMLInputElement>) => {
+        this.setState({joke:this.state.joke, name: this.state.name, judgeName: event.target.value })
+    }
+
+    sendJoke = () => {
+        var message:IJokeMessage = {Type: "joke", Joke: this.state.joke, Name: this.state.name} ;
+        this.sendMessage(JSON.stringify(message));
+    }
+    
+    sendJudgeName = () => {
+        var message:IJudgeNameMessage = {Type: "setjudge", Username: this.state.judgeName} ;
+        this.sendMessage(JSON.stringify(message));    
+    }
+    
     sendVerdict =  (verdict: boolean) => () => {
         var message:IVerdictMessage = {Type: "verdict", Verdict: verdict} ;
-            try {
-                console.log(message)
-                this.props.ws.send(JSON.stringify(message))
-               
-            } catch (error) {
-                console.log(error) // catch error
-            }
+        this.sendMessage(JSON.stringify(message));      
+    }
+
+    sendMessage = (message: string) => {
+        try {
+            console.log(message)
+            this.props.ws.send(message)
+           
+        } catch (error) {
+            console.log(error) // catch error
+        }
     }
 }

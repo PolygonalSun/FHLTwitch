@@ -25,6 +25,12 @@
     border-style: groove;
   }
   
+  .small-button{
+    font-size: .6rem;
+    margin: .2rem;
+    padding: .2rem 1.5rem;
+  }
+
   .button:focus {
     outline-width: 0;
   }
