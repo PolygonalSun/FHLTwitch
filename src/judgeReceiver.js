@@ -1,5 +1,5 @@
 var judgeAddr = "ws://127.0.0.1:7602"
-var judgeChannel = "polygonalsun";
+var judgeChannel;
 var activeJury = [];
 var seekingVerdict = false;
 var votesGuilty = 0;
@@ -65,9 +65,8 @@ var gatherVotes = (channel, tags, message, self) => {
                 votesNotGuilty++;
                 break;
         }
+        onVotesChanged();
     }
-
-    onVotesChanged();
 }
 
 /**
@@ -77,7 +76,13 @@ var gatherVotes = (channel, tags, message, self) => {
 var handleJudgeInput = (event) => {
     const judgeData = JSON.parse(event.data);
 
-    if (judgeData.Type === "vote") {
+    if (judgeData.Type === "setjudge") {
+        judgeChannel = judgeData.Username;
+        console.log("Set judge to " + judgeChannel);
+        InitializeTMI(judgeChannel, gatherVotes);
+        onVotesChanged(); // Call to reset to initial numbers
+    }
+    if (judgeChannel && judgeData.Type === "vote") {
         if (judgeData.StatusOfVote) {
             startVote(judgeData.Timeout);
         }
@@ -85,10 +90,10 @@ var handleJudgeInput = (event) => {
             endVote();
         }
     }
-    else if (!seekingVerdict && judgeData.Type === "joke") {
+    else if (judgeChannel && !seekingVerdict && judgeData.Type === "joke") {
         sentenceString(judgeData.Name, judgeData.Joke);
     }
-    else if (judgeData.Type === "verdict" && _stringOnTrial.length > 0) {
+    else if (judgeChannel && judgeData.Type === "verdict" && _stringOnTrial.length > 0) {
         if (judgeData.Verdict) {
             totalGuilty++;
             sentenceGuilty();
@@ -129,9 +134,6 @@ var endVote = () => {
     seekingVerdict = false;
     activeJury = [];
 };
-
-// TMI Setup
-InitializeTMI(judgeChannel, gatherVotes);
 
 // Websocket Setup
 InitializeRelay(judgeAddr, handleJudgeInput);
