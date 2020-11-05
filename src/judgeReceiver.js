@@ -5,6 +5,10 @@ var seekingVerdict = false;
 var votesGuilty = 0;
 var votesNotGuilty = 0;
 var timeElapsed;
+var timer;
+
+var totalGuilty = 0;
+var totalNotGuilty = 0;
 
 var _offender = "";
 var _stringOnTrial = "";
@@ -86,9 +90,11 @@ var handleJudgeInput = (event) => {
     }
     else if (judgeData.Type === "verdict" && _stringOnTrial.length > 0) {
         if (judgeData.Verdict) {
+            totalGuilty++;
             sentenceGuilty();
         }
         else {
+            totalNotGuilty++;
             sentenceNotGuilty();
         }
     }
@@ -103,13 +109,12 @@ var startVote = (timeoutInSeconds) => {
     votesNotGuilty = 0;
     seekingVerdict = true;
     onVotesChanged();
-    timeElapsed = setTimeout(() => {
-        endVote();
-    }, (timeoutInSeconds * 1000));
-};
-
-var voteTimeout = async (timeoutInSeconds) => {
-
+    timeElapsed = timeoutInSeconds;
+    timer = setInterval(() => {
+        if (--timeElapsed === 0) {
+            clearInterval(timer);
+        }
+    }, 1000);
 };
 
 /**
@@ -117,9 +122,10 @@ var voteTimeout = async (timeoutInSeconds) => {
  */
 var endVote = () => {
     // If vote ended prematurely, cancel the timer
-    if (timeElapsed) {
-        clearTimeout(timeElapsed);
+    if (timer) {
+        clearInterval(timer);
     }
+
     seekingVerdict = false;
     activeJury = [];
 };
