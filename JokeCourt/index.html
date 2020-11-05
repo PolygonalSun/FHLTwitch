@@ -168,6 +168,10 @@
 <script>
     var canvas = document.getElementById("bjsCanvas"); // Get the canvas element
     var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+    var _elapsedTime = 0; // how much time has passed since the scene began?
+
+    var _badPercent = 0; // what percent of the votes are bad?
+    var _goodPercent = 0; // what percent of the votes are good?
 
     /******* Add the create scene function ******/
     var createScene = function () {
@@ -178,14 +182,14 @@
         let mainCam = new BABYLON.ArcRotateCamera("mainCam", BABYLON.Tools.ToRadians(-90), BABYLON.Tools.ToRadians(90), 10, new BABYLON.Vector3(0, 0, 0), scene);
         mainCam.attachControl(canvas, true);
 
-        var make3dText = function(text, scene, scaleX, scaleY, colorHex, height, thickness, position, anchor, textMeshMaxWidth) {
+        var make3dText = function(text, scene, scaleX, scaleY, color, height, thickness, position, anchor, textMeshMaxWidth) {
             const Writer = BABYLON.MeshWriter(scene, {scaleX:scaleY});
             const textWriter = new Writer(
                 text,
                 {
                     "anchor": anchor,
                     "letter-height": height,
-                    "color": colorHex,
+                    "color": "#FFFFFF",
                     "letter-thickness": thickness,
                     "position": {
                         x : position.x,
@@ -196,6 +200,10 @@
             );
             textWriter.getMesh().rotate(BABYLON.Vector3.Right(), -Math.PI/2);
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+            setTextColor(textWriter, color);
+>>>>>>> 46599df... Add implementation of text shake, color change and explosion particle effects. add hook to guilty callback
 
             // TODO: Hacky fix to get text to fit within the bounds we want. We should instead be breaking up the text into multiple meshes, and parenting them to a shared transform.
             if (textMeshMaxWidth){
@@ -212,9 +220,9 @@
         }
 
         /* simple two color bar graph creator using emissives */
-        var makeBarGraph = function(text, scene, scale, textColorHex, textHeight, textThickness, textOffset, barHeight, barWidth, barDepth, barColor, barBackgroundColor, barMaxValue) {
+        var makeBarGraph = function(text, scene, scale, textColor, textHeight, textThickness, textOffset, barHeight, barWidth, barDepth, barColor, barBackgroundColor, barMaxValue) {
             let barGraphHandle = new BABYLON.TransformNode();
-            let barText = make3dText(text, scene, scale, scale, textColorHex, textHeight, textThickness, textOffset.clone().addInPlaceFromFloats(-barWidth/2, 3*barHeight/4, 0), "left");
+            let barText = make3dText(text, scene, scale, scale, textColor, textHeight, textThickness, textOffset.clone().addInPlaceFromFloats(-barWidth/2, 3*barHeight/4, 0), "left");
             barText.getMesh().setParent(barGraphHandle);
             let barMesh = BABYLON.MeshBuilder.CreateBox("graphBox", {height: barHeight, width: barWidth, depth: barDepth}, scene);
             let barFillPlane = BABYLON.MeshBuilder.CreatePlane("graphBoxFill", {height: barHeight, width: barWidth}, scene);
@@ -241,10 +249,44 @@
             return {handle: barGraphHandle, text: barText, barMesh: barMesh, barFillPlane: barFillPlane, setValue: setBarValue};
         }
 
+        var makeTextShaky = function(text, yFactor, ySpeed) {
+            console.log("Setting shaky text!");
+            text.getSPS().updateParticle = (particle) => {
+                particle.position.copyFromFloats(particle.position.x, particle.position.y, yFactor * Math.random());
+            }
+        }
+
+        var setTextColor = function(text, color){
+            text.getSPS().particles.forEach(particle => {
+                particle.color.r = color.r;
+                particle.color.g = color.g;
+                particle.color.b = color.b;
+                particle.color.a = color.a;
+            })
+        }
+
+        var makeTextExplodey = function(text, deltaAng, xForce, yForce, gravity) {
+            console.log("Setting explodey text");
+            text.getSPS().initParticles = function (deltaAng, xForce, yForce) {
+                for (var p = 0; p < this.nbParticles; p++){
+                    // generate a random vector within the upward hemisphere to send this particle.
+                    let angX = deltaAng * (Math.random() - 0.5);
+                    let angY = deltaAng * Math.random();
+                    this.particles[p].velocity.copyFromFloats(Math.cos(angX) * xForce, Math.sin(angX) * xForce, Math.cos(angY)  * yForce);
+                }
+            }
+            text.getSPS().initParticles(deltaAng, xForce, yForce);
+            text.getSPS().updateParticle = (particle) => {
+                console.log("Updating explodeyText!")
+                particle.velocity.z += gravity;
+                (particle.position).addInPlace(particle.velocity);
+            }
+        }
+
         /* setup default formatting values */
         let textScale = 1;
 
-        let offenderTextColorHex = "#00FF00";
+        let offenderTextColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
         let offenderTextHeight = 0.5;
         let offenderTextThickness = 0.001;
 <<<<<<< HEAD
@@ -257,7 +299,7 @@
         let offenderTextMaxWidth = 14;
 >>>>>>> d7e0a47... Update view scene (#4)
 
-        let jokeTextColorHex = "#00FF00";
+        let jokeTextColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
         let jokeTextHeight = 1;
         let jokeTextThickness = 0.001;
 <<<<<<< HEAD
@@ -273,6 +315,7 @@
         let jokePlaceholderText = "Why did the chicken cross the road? Because there was a crosswalk.";
         let offenderPlaceholderText = "whoisdrigax199292"
         /* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
+<<<<<<< HEAD
         let jokeTextMesh = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColorHex, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth);
         let offenderTextMesh = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
 <<<<<<< HEAD
@@ -282,6 +325,12 @@
         let barGraphGuilty = makeBarGraph("Guilty", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
         let barGraphNotGuilty = makeBarGraph("Not Guilty", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 >>>>>>> d7e0a47... Update view scene (#4)
+=======
+        let jokeTextMesh = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth);
+        let offenderTextMesh = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
+        let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+        let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+>>>>>>> 46599df... Add implementation of text shake, color change and explosion particle effects. add hook to guilty callback
 
         barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
         barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
@@ -300,8 +349,8 @@
             }
 
             jokeTextMesh = make3dText(_stringOnTrial, scene, textScale, textScale, jokeTextColorHex, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString);
-
             offenderTextMesh = make3dText(_offender, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString);
+<<<<<<< HEAD
 <<<<<<< HEAD
 
         }
@@ -321,9 +370,19 @@
         }
 =======
 
+=======
+>>>>>>> 46599df... Add implementation of text shake, color change and explosion particle effects. add hook to guilty callback
         }
+
         sentenceGuilty = () => {
             console.log("Guilty!");
+            makeTextShaky(jokeTextMesh, 0.1, 0.01);
+            setTextColor(jokeTextMesh, new BABYLON.Color4(1.0,0.1,0.1,1));
+            let explosionTimer = setInterval(() => {
+                clearInterval(explosionTimer);
+                makeTextExplodey(jokeTextMesh, Math.PI, 0.2, 1.0, -0.05);
+            }, 2000);
+            /* maybe add some additional 3d effect with a gavel? */
         }
 
         sentenceNotGuilty = () => {
@@ -333,13 +392,32 @@
         onVotesChanged = () => {
             console.log("Updating vote display...");
             const voteCount = votesGuilty+votesNotGuilty
-            barGraphGuilty.setValue(voteCount != 0 ? votesGuilty/voteCount : 0);
-            barGraphNotGuilty.setValue(voteCount != 0 ? votesNotGuilty/voteCount : 0);
+            _badPercent = voteCount != 0 ? votesGuilty/voteCount : 0
+            _goodPercent = voteCount != 0 ? votesNotGuilty/voteCount : 0
+            barGraphGuilty.setValue(_badPercent);
+            barGraphNotGuilty.setValue(_goodPercent);
         }
 
+<<<<<<< HEAD
 
 >>>>>>> d7e0a47... Update view scene (#4)
 
+=======
+        scene.onBeforeRenderObservable.add(() => {
+            jokeTextMesh.getSPS().setParticles();
+            offenderTextMesh.getSPS().setParticles();
+            barGraphGuilty.text.getSPS().setParticles();
+            barGraphNotGuilty.text.getSPS().setParticles();
+            _elapsedTime += engine.getDeltaTime();
+        })
+
+        /* // Test effects here...
+        let testTimer = setInterval(() => {
+            clearInterval(testTimer);
+            sentenceGuilty();
+        }, 2000);
+        */
+>>>>>>> 46599df... Add implementation of text shake, color change and explosion particle effects. add hook to guilty callback
         /* return the initialized scene */
         return scene;
     }
