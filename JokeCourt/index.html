@@ -384,6 +384,13 @@
 			let jokeTextAlignmentString = "left";
 			let jokeTextMaxWidth = 14;
 
+			let timerTextColorHex = "#00FF00";
+			let timerTextHeight = 0.25;
+			let timerTextThickness = 0.001;
+			let timerTextPosition = new BABYLON.Vector3(3, 1.5, 0);
+			let timerTextAlignmentString = "left";
+			let timerTextMaxWidth = 3.6;
+
 			/* Initialize placeholders for help formatting */
 			let jokePlaceholderText = "Why did the chicken cross the road? Because there was a crosswalk.";
 			let offenderPlaceholderText = "whoisdrigax199292"
@@ -392,12 +399,22 @@
 			let offenderTextMesh = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
 			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let voteTimerMesh = make3dText("Time Left: 0 Seconds", scene, textScale, textScale, timerTextColorHex, timerTextHeight, timerTextThickness, timerTextPosition, timerTextAlignmentString, timerTextMaxWidth);
 
 			barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
 			barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
 
 			barGraphGuilty.setValue(0.25);
 			barGraphNotGuilty.setValue(0.75);
+
+			var updateTimer = (time) => {
+				if (voteTimerMesh) {
+					voteTimerMesh.dispose();
+				}
+				if (time > 0) {
+					voteTimerMesh = make3dText("Time Left: " + time + " Seconds", scene, textScale, textScale, timerTextColorHex, timerTextHeight, timerTextThickness, timerTextPosition, timerTextAlignmentString, timerTextMaxWidth);
+				}
+			};
 
 			displayStringOnTrial = () => {
 				if (jokeTextMesh) {
@@ -415,10 +432,12 @@
 
 			}
 			sentenceGuilty = () => {
+				updateTimer(0);
 				console.log("Guilty!");
 			}
 
 			sentenceNotGuilty = () => {
+				updateTimer(0);
 				console.log("Not Guilty!");
 			}
 
@@ -428,6 +447,10 @@
 				barGraphGuilty.setValue(voteCount != 0 ? votesGuilty / voteCount : 0);
 				barGraphNotGuilty.setValue(voteCount != 0 ? votesNotGuilty / voteCount : 0);
 			}
+
+			scene.beforeRender = () => {
+				updateTimer(timeLeft);
+			};
 
 			/* return the initialized scene */
 			return scene;

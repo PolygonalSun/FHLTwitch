@@ -4,7 +4,7 @@ var activeJury = [];
 var seekingVerdict = false;
 var votesGuilty = 0;
 var votesNotGuilty = 0;
-var timeElapsed;
+var timeLeft;
 var timer;
 
 var totalGuilty = 0;
@@ -109,9 +109,9 @@ var startVote = (timeoutInSeconds) => {
     votesNotGuilty = 0;
     seekingVerdict = true;
     onVotesChanged();
-    timeElapsed = timeoutInSeconds;
+    timeLeft = timeoutInSeconds;
     timer = setInterval(() => {
-        if (--timeElapsed === 0) {
+        if (--timeLeft === 0) {
             clearInterval(timer);
         }
     }, 1000);
@@ -128,6 +128,7 @@ var endVote = () => {
 
     seekingVerdict = false;
     activeJury = [];
+    timeLeft = 0;
 };
 
 // TMI Setup
