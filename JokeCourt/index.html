@@ -276,7 +276,7 @@
 			let mainCam = new BABYLON.ArcRotateCamera("mainCam", BABYLON.Tools.ToRadians(-90), BABYLON.Tools.ToRadians(90), 10, new BABYLON.Vector3(0, 0, 0), scene);
 			mainCam.attachControl(canvas, true);
 
-			var make3dText = function (text, scene, scaleX, scaleY, textColor, height, thickness, position, anchor, textMeshMaxWidth, ignoreWordWrap = false) {
+			var make3dText = function (text, scene, scaleX, scaleY, textColor, height, thickness, position, anchor, textMeshMaxWidth, ignoreWordWrap = false, maxLineWidth = 81, squeezeToFit = true) {
 				const lines = [];
 				let finishedGettingLines = false;
 				let textBuffer = text;
@@ -286,12 +286,12 @@
 				}
 				else {
 					while (!finishedGettingLines && textBuffer.length > 0) {
-						if (textBuffer.length <= 30) {
+						if (textBuffer.length <= maxLineWidth) {
 							lines.push(textBuffer);
 							finishedGettingLines = true;
 						}
 						else {
-							const lineBuffer = textBuffer.substring(0, 30);
+							const lineBuffer = textBuffer.substring(0, maxLineWidth);
 							const lastSpace = lineBuffer.lastIndexOf(" ");
 
 							if (lastSpace !== -1) {
@@ -299,8 +299,8 @@
 								textBuffer = textBuffer.substring(lastSpace + 1, textBuffer.length);
 							}
 							else {
-								lines.push(textBuffer.substring(0, 30));
-								textBuffer = textBuffer.substring(30, textBuffer.length);
+								lines.push(textBuffer.substring(0, maxLineWidth));
+								textBuffer = textBuffer.substring(maxLineWidth, textBuffer.length);
 							}
 						}
 					}
@@ -318,7 +318,7 @@
 							"letter-thickness": thickness,
 							"position": {
 								x: position.x,
-								y: position.y - (height * (textWriters.length - 1)),
+								y: position.y - (height * (textWriters.length)),
 								z: position.z
 							}
 						}
@@ -330,12 +330,18 @@
 					setTextColor(textWriter, textColor);
 				});
 
+				if (textMeshMaxWidth && squeezeToFit){
+					textMeshMinScaling = 1;
+					textWriters.forEach( (textWriter) => {
+						const textMeshMinMax = BABYLON.Mesh.MinMax([textWriter.getMesh()]);
+						textMeshMinScaling = Math.min(Math.min(1, textMeshMaxWidth/(textMeshMinMax.max.x - textMeshMinMax.min.x)), textMeshMinScaling);
+					});
 
-				// TODO: Hacky fix to get text to fit within the bounds we want. We should instead be breaking up the text into multiple meshes, and parenting them to a shared transform.
-				/*if (textMeshMaxWidth){
-					const textMeshMinMax = BABYLON.Mesh.MinMax([textWriter.getMesh()]);
-					textWriter.getMesh().scaling.x = Math.min(1, textMeshMaxWidth/(textMeshMinMax.max.x - textMeshMinMax.min.x));
-				}*/
+					textWriters.forEach( (textWriter) => {
+						textWriter.getMesh().scaling.x = textMeshMinScaling;
+					});
+				}
+
 				return textWriters;
 			}
 
@@ -414,17 +420,18 @@
 			let offenderTextMaxWidth = 3.6;
 
 			let jokeTextColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
-			let jokeTextHeight = 1;
+			let jokeTextHeight = 0.75;
 			let jokeTextThickness = 0.001;
 			let jokeTextPosition = new BABYLON.Vector3(-7, -2, 0);
 			let jokeTextAlignmentString = "left";
 			let jokeTextMaxWidth = 14;
+			let jokeTextLineCharacterLength = 81;
 
 			/* Initialize placeholders for help formatting */
-			let jokePlaceholderText = "Why did the chicken cross the road? Because there was a crosswalk.";
-			let offenderPlaceholderText = "whoisdrigax199292"
+			let jokePlaceholderText = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.";
+			let offenderPlaceholderText = "anyGivenUserName91129211"
 			/* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
-			let jokeTextWriters = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth);
+			let jokeTextWriters = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
 			let offenderTextWriters = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
 			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
@@ -445,8 +452,8 @@
 					offenderTextWriters = null;
 				}
 
-				jokeTextWriters = make3dText(_stringOnTrial, scene, textScale, textScale, jokeTextColorHex, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString);
-				offenderTextWriters = make3dText(_offender, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString);
+				jokeTextWriters = make3dText(_stringOnTrial, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
+				offenderTextWriters = make3dText(_offender, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth, true, 0, true);
 			}
 
 			sentenceGuilty = () => {
