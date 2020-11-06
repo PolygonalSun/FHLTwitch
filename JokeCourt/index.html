@@ -263,6 +263,10 @@
 		var canvas = document.getElementById("bjsCanvas"); // Get the canvas element
 		var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 
+		var _elapsedTime = 0; // how much time has passed since the scene began?
+
+		var _badPercent = 0; // what percent of the votes are bad?
+		var _goodPercent = 0; // what percent of the votes are good?
 		/******* Add the create scene function ******/
 		var createScene = function () {
 			let scene = new BABYLON.Scene(engine);
@@ -272,7 +276,7 @@
 			let mainCam = new BABYLON.ArcRotateCamera("mainCam", BABYLON.Tools.ToRadians(-90), BABYLON.Tools.ToRadians(90), 10, new BABYLON.Vector3(0, 0, 0), scene);
 			mainCam.attachControl(canvas, true);
 
-			var make3dText = function (text, scene, scaleX, scaleY, colorHex, height, thickness, position, anchor, textMeshMaxWidth, ignoreWordWrap = false) {
+			var make3dText = function (text, scene, scaleX, scaleY, textColor, height, thickness, position, anchor, textMeshMaxWidth, ignoreWordWrap = false, maxLineWidth = 81, squeezeToFit = true) {
 				const lines = [];
 				let finishedGettingLines = false;
 				let textBuffer = text;
@@ -282,12 +286,12 @@
 				}
 				else {
 					while (!finishedGettingLines && textBuffer.length > 0) {
-						if (textBuffer.length <= 30) {
+						if (textBuffer.length <= maxLineWidth) {
 							lines.push(textBuffer);
 							finishedGettingLines = true;
 						}
 						else {
-							const lineBuffer = textBuffer.substring(0, 30);
+							const lineBuffer = textBuffer.substring(0, maxLineWidth);
 							const lastSpace = lineBuffer.lastIndexOf(" ");
 
 							if (lastSpace !== -1) {
@@ -295,8 +299,8 @@
 								textBuffer = textBuffer.substring(lastSpace + 1, textBuffer.length);
 							}
 							else {
-								lines.push(textBuffer.substring(0, 30));
-								textBuffer = textBuffer.substring(30, textBuffer.length);
+								lines.push(textBuffer.substring(0, maxLineWidth));
+								textBuffer = textBuffer.substring(maxLineWidth, textBuffer.length);
 							}
 						}
 					}
@@ -310,40 +314,44 @@
 						{
 							"anchor": anchor,
 							"letter-height": height,
-							"color": colorHex,
+							"color": "#FFFFFF",
 							"letter-thickness": thickness,
 							"position": {
 								x: position.x,
-								y: position.y - (height * (textWriters.length - 1)),
+								y: position.y - (height * (textWriters.length)),
 								z: position.z
 							}
 						}
 					));
 				});
 
-				var comp = new BABYLON.Mesh("", scene);
 				textWriters.forEach((textWriter) => {
 					textWriter.getMesh().rotate(BABYLON.Vector3.Right(), -Math.PI / 2);
-					comp.addChild(textWriter.getMesh());
+					setTextColor(textWriter, textColor);
 				});
 
+				if (textMeshMaxWidth && squeezeToFit){
+					textMeshMinScaling = 1;
+					textWriters.forEach( (textWriter) => {
+						const textMeshMinMax = BABYLON.Mesh.MinMax([textWriter.getMesh()]);
+						textMeshMinScaling = Math.min(Math.min(1, textMeshMaxWidth/(textMeshMinMax.max.x - textMeshMinMax.min.x)), textMeshMinScaling);
+					});
 
-				// TODO: Hacky fix to get text to fit within the bounds we want. We should instead be breaking up the text into multiple meshes, and parenting them to a shared transform.
-				/*if (textMeshMaxWidth){
-					const textMeshMinMax = BABYLON.Mesh.MinMax([textWriter.getMesh()]);
-					textWriter.getMesh().scaling.x = Math.min(1, textMeshMaxWidth/(textMeshMinMax.max.x - textMeshMinMax.min.x));
-				}*/
-				return comp;
+					textWriters.forEach( (textWriter) => {
+						textWriter.getMesh().scaling.x = textMeshMinScaling;
+					});
+				}
+
+				return textWriters;
 			}
 
 			/* simple two color bar graph creator using emissives */
-			var makeBarGraph = function (text, scene, scale, textColorHex, textHeight, textThickness, textOffset, barHeight, barWidth, barDepth, barColor, barBackgroundColor, barMaxValue) {
+			var makeBarGraph = function(text, scene, scale, textColor, textHeight, textThickness, textOffset, barHeight, barWidth, barDepth, barColor, barBackgroundColor, barMaxValue) {
 				let barGraphHandle = new BABYLON.TransformNode();
-				let barText = make3dText(text, scene, scale, scale, textColorHex, textHeight, textThickness, textOffset.clone().addInPlaceFromFloats(-barWidth / 2, 3 * barHeight / 4, 0), "left");
-				console.log(barText);
-				barText.setParent(barGraphHandle);
-				let barMesh = BABYLON.MeshBuilder.CreateBox("graphBox", { height: barHeight, width: barWidth, depth: barDepth }, scene);
-				let barFillPlane = BABYLON.MeshBuilder.CreatePlane("graphBoxFill", { height: barHeight, width: barWidth }, scene);
+				let barText = make3dText(text, scene, scale, scale, textColor, textHeight, textThickness, textOffset.clone().addInPlaceFromFloats(-barWidth/2, 3*barHeight/4, 0), "left");
+				barText.forEach(text => { text.getMesh().setParent(barGraphHandle) });
+				let barMesh = BABYLON.MeshBuilder.CreateBox("graphBox", {height: barHeight, width: barWidth, depth: barDepth}, scene);
+				let barFillPlane = BABYLON.MeshBuilder.CreatePlane("graphBoxFill", {height: barHeight, width: barWidth}, scene);
 				barMesh.setParent(barGraphHandle);
 				barFillPlane.setParent(barGraphHandle);
 				let barMeshMaterial = new BABYLON.PBRMaterial("barGraphMaterial", scene);
@@ -354,44 +362,79 @@
 				barBackPlaneMaterial.emissiveColor.copyFrom(barBackgroundColor);
 
 				// Modify the vertex data such that the origin is in the left face.
-				barMesh.position.addInPlaceFromFloats(barWidth / 2, 0, 0);
+				barMesh.position.addInPlaceFromFloats(barWidth/2, 0, 0);
 				barMesh.bakeCurrentTransformIntoVertices();
-				barMesh.position.addInPlaceFromFloats(-barWidth / 2, 0, 0);
+				barMesh.position.addInPlaceFromFloats(-barWidth/2, 0, 0);
 
 				// Move the fill plane to be aligned with the back face of the bar graph
-				barFillPlane.position.addInPlaceFromFloats(0, 0, barDepth / 2);
+				barFillPlane.position.addInPlaceFromFloats(0, 0, barDepth/2);
 
 				let setBarValue = (value) => {
 					barMesh.scaling.x = (value / barMaxValue)
 				}
-				return { handle: barGraphHandle, text: barText, barMesh: barMesh, barFillPlane: barFillPlane, setValue: setBarValue };
+				return {handle: barGraphHandle, text: barText, barMesh: barMesh, barFillPlane: barFillPlane, setValue: setBarValue};
+			}
+
+			var makeTextShaky = function(text, yFactor, ySpeed) {
+				console.log("Setting shaky text!");
+				text.getSPS().updateParticle = (particle) => {
+					particle.position.copyFromFloats(particle.position.x, particle.position.y, yFactor * Math.random());
+				}
+			}
+
+			var setTextColor = function(text, color){
+				text.getSPS().particles.forEach(particle => {
+					particle.color.r = color.r;
+					particle.color.g = color.g;
+					particle.color.b = color.b;
+					particle.color.a = color.a;
+				})
+			}
+
+			var makeTextExplodey = function(text, deltaAng, xForce, yForce, gravity) {
+				console.log("Setting explodey text");
+				text.getSPS().initParticles = function (deltaAng, xForce, yForce) {
+					for (var p = 0; p < this.nbParticles; p++){
+						// generate a random vector within the upward hemisphere to send this particle.
+						let angX = deltaAng * (Math.random() - 0.5);
+						let angY = deltaAng * Math.random();
+						this.particles[p].velocity.copyFromFloats(Math.cos(angX) * xForce, Math.sin(angX) * xForce, Math.cos(angY)  * yForce);
+					}
+				}
+				text.getSPS().initParticles(deltaAng, xForce, yForce);
+				text.getSPS().updateParticle = (particle) => {
+					console.log("Updating explodeyText!")
+					particle.velocity.z += gravity;
+					(particle.position).addInPlace(particle.velocity);
+				}
 			}
 
 			/* setup default formatting values */
 			let textScale = 1;
 
-			let offenderTextColorHex = "#00FF00";
+			let offenderTextColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
 			let offenderTextHeight = 0.5;
 			let offenderTextThickness = 0.001;
 			let offenderTextPosition = new BABYLON.Vector3(-7.3, -0.75, 0);
 			let offenderTextAlignmentString = "left";
 			let offenderTextMaxWidth = 3.6;
 
-			let jokeTextColorHex = "#00FF00";
-			let jokeTextHeight = .75;
+			let jokeTextColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
+			let jokeTextHeight = 0.75;
 			let jokeTextThickness = 0.001;
 			let jokeTextPosition = new BABYLON.Vector3(-7, -2, 0);
 			let jokeTextAlignmentString = "left";
 			let jokeTextMaxWidth = 14;
+			let jokeTextLineCharacterLength = 81;
 
 			/* Initialize placeholders for help formatting */
-			let jokePlaceholderText = "Why did the chicken cross the road? Because there was a crosswalk.";
-			let offenderPlaceholderText = "whoisdrigax199292"
+			let jokePlaceholderText = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.";
+			let offenderPlaceholderText = "anyGivenUserName91129211"
 			/* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
-			let jokeTextMesh = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColorHex, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth);
-			let offenderTextMesh = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
-			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
-			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, "#00FF00", 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let jokeTextWriters = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
+			let offenderTextWriters = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
+			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 
 			barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
 			barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
@@ -400,22 +443,28 @@
 			barGraphNotGuilty.setValue(0.75);
 
 			displayStringOnTrial = () => {
-				if (jokeTextMesh) {
-					jokeTextMesh.dispose();
-					jokeTextMesh = null;
+				if (jokeTextWriters) {
+					jokeTextWriters.forEach(writer => { writer.getMesh().dispose(); });
+					jokeTextWriters = null;
 				}
-				if (offenderTextMesh) {
-					offenderTextMesh.dispose();
-					offenderTextMesh = null;
+				if (offenderTextWriters) {
+					offenderTextWriters.forEach(writer => { writer.getMesh().dispose(); });
+					offenderTextWriters = null;
 				}
 
-				jokeTextMesh = make3dText(_stringOnTrial, scene, textScale, textScale, jokeTextColorHex, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString);
-
-				offenderTextMesh = make3dText(_offender, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString);
-
+				jokeTextWriters = make3dText(_stringOnTrial, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
+				offenderTextWriters = make3dText(_offender, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth, true, 0, true);
 			}
+
 			sentenceGuilty = () => {
 				console.log("Guilty!");
+				jokeTextWriters.forEach(writer => { makeTextShaky(writer, 0.1, 0.01); });
+				jokeTextWriters.forEach(writer => { setTextColor(writer, new BABYLON.Color4(1.0,0.1,0.1,1)) });
+				let explosionTimer = setInterval(() => {
+					clearInterval(explosionTimer);
+					jokeTextWriters.forEach(writer => { makeTextExplodey(writer, Math.PI, 0.2, 1.0, -0.05) });
+				}, 2000);
+				/* maybe add some additional 3d effect with a gavel? */
 			}
 
 			sentenceNotGuilty = () => {
@@ -424,15 +473,39 @@
 
 			onVotesChanged = () => {
 				console.log("Updating vote display...");
-				const voteCount = votesGuilty + votesNotGuilty
-				barGraphGuilty.setValue(voteCount != 0 ? votesGuilty / voteCount : 0);
-				barGraphNotGuilty.setValue(voteCount != 0 ? votesNotGuilty / voteCount : 0);
+				const voteCount = votesGuilty+votesNotGuilty
+				_badPercent = voteCount != 0 ? votesGuilty/voteCount : 0
+				_goodPercent = voteCount != 0 ? votesNotGuilty/voteCount : 0
+				barGraphGuilty.setValue(_badPercent);
+				barGraphNotGuilty.setValue(_goodPercent);
 			}
+
+			scene.onBeforeRenderObservable.add(() => {
+				jokeTextWriters.forEach( textMesh => {
+					textMesh.getSPS().setParticles();
+				});
+				offenderTextWriters.forEach( textMesh => {
+					textMesh.getSPS().setParticles();
+				});
+				barGraphGuilty.text.forEach( textMesh => {
+					textMesh.getSPS().setParticles();
+				});
+				barGraphNotGuilty.text.forEach( textMesh => {
+					textMesh.getSPS().setParticles();
+				});
+				_elapsedTime += engine.getDeltaTime();
+			})
+
+			/* // Test effects here...
+			let testTimer = setInterval(() => {
+				clearInterval(testTimer);
+				sentenceGuilty();
+			}, 2000);
+			*/
 
 			/* return the initialized scene */
 			return scene;
 		}
-
 
 		/******* End of the create scene function ******/
 		var scene = createScene(); //Call the createScene function
