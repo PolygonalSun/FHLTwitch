@@ -433,8 +433,8 @@
 			/* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
 			let jokeTextWriters = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
 			let offenderTextWriters = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
-			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
-			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.5, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 
 			barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
 			barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
@@ -458,11 +458,11 @@
 
 			sentenceGuilty = () => {
 				console.log("Guilty!");
-				makeTextShaky(jokeTextWriters, 0.1, 0.01);
-				setTextColor(jokeTextWriters, new BABYLON.Color4(1.0,0.1,0.1,1));
+				jokeTextWriters.forEach(writer => { makeTextShaky(writer, 0.1, 0.01); });
+				jokeTextWriters.forEach(writer => { setTextColor(writer, new BABYLON.Color4(1.0,0.1,0.1,1)) });
 				let explosionTimer = setInterval(() => {
-				clearInterval(explosionTimer);
-				makeTextExplodey(jokeTextWriters, Math.PI, 0.2, 1.0, -0.05);
+					clearInterval(explosionTimer);
+					jokeTextWriters.forEach(writer => { makeTextExplodey(writer, Math.PI, 0.2, 1.0, -0.05) });
 				}, 2000);
 				/* maybe add some additional 3d effect with a gavel? */
 			}
@@ -502,6 +502,7 @@
 				sentenceGuilty();
 			}, 2000);
 			*/
+
 			/* return the initialized scene */
 			return scene;
 		}
