@@ -4,7 +4,7 @@ var activeJury = [];
 var seekingVerdict = false;
 var votesGuilty = 0;
 var votesNotGuilty = 0;
-var timeElapsed;
+var timeLeft;
 var timer;
 
 var totalGuilty = 0;
@@ -26,10 +26,14 @@ var sentenceGuilty = () => { };
  */
 var sentenceNotGuilty = () => { };
 /**
- *
  * Callback for doing something when the vote tally changes
  */
 var onVotesChanged = () => { };
+
+/**
+ * Callback to handle timer changesS
+ */
+var onTimerChange = () => { };
 
 /**
  * Set user and string data, then use callback
@@ -96,10 +100,12 @@ var handleJudgeInput = (event) => {
     else if (judgeChannel && judgeData.Type === "verdict" && _stringOnTrial.length > 0) {
         if (judgeData.Verdict) {
             totalGuilty++;
+            endVote();
             sentenceGuilty();
         }
         else {
             totalNotGuilty++;
+            endVote();
             sentenceNotGuilty();
         }
     }
@@ -114,11 +120,16 @@ var startVote = (timeoutInSeconds) => {
     votesNotGuilty = 0;
     seekingVerdict = true;
     onVotesChanged();
-    timeElapsed = timeoutInSeconds;
+    timeLeft = timeoutInSeconds;
+    onTimerChange();
     timer = setInterval(() => {
-        if (--timeElapsed === 0) {
+        if (timeLeft === 0) {
             clearInterval(timer);
         }
+        else {
+            timeLeft--;
+        }
+        onTimerChange();
     }, 1000);
 };
 
@@ -133,6 +144,8 @@ var endVote = () => {
 
     seekingVerdict = false;
     activeJury = [];
+    timeLeft = 0;
+    onTimerChange();
 };
 
 // Websocket Setup

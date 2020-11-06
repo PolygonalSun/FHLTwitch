@@ -388,7 +388,7 @@
 					particle.color.g = color.g;
 					particle.color.b = color.b;
 					particle.color.a = color.a;
-				})
+				});
 			}
 
 			var makeTextExplodey = function(text, deltaAng, xForce, yForce, gravity) {
@@ -427,20 +427,39 @@
 			let jokeTextMaxWidth = 14;
 			let jokeTextLineCharacterLength = 81;
 
+			let timerTextColor = new BABYLON.Color4(1, 0, 0, 0);
+			let timerTextHeight = 0.25;
+			let timerTextThickness = 0.001;
+			let timerTextPosition = new BABYLON.Vector3(4, -1.3, 0);
+			let timerTextAlignmentString = "left";
+			let timerTextMaxWidth = 3.6;
+
 			/* Initialize placeholders for help formatting */
 			let jokePlaceholderText = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.";
 			let offenderPlaceholderText = "anyGivenUserName91129211"
+			let timerPlaceholderText = "Time Left: 0 Seconds";
 			/* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
 			let jokeTextWriters = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
 			let offenderTextWriters = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
 			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let timerTextWriters; // Assign only when timer is active, otherwise, just act as ref.
 
 			barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
 			barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
 
 			barGraphGuilty.setValue(0.25);
 			barGraphNotGuilty.setValue(0.75);
+
+			onTimerChange = () => {
+				if (timerTextWriters) {
+					timerTextWriters.forEach(writer => { writer.getMesh().dispose(); });
+					timerTextWriters = null;
+				}
+				if (timeLeft > 0) {
+					timerTextWriters = make3dText("Time Left: " + timeLeft + " Seconds", scene, textScale, textScale, timerTextColor, timerTextHeight, timerTextThickness, timerTextPosition, timerTextAlignmentString, timerTextMaxWidth);
+				}
+			};
 
 			displayStringOnTrial = () => {
 				if (jokeTextWriters) {
@@ -453,7 +472,7 @@
 				}
 
 				jokeTextWriters = make3dText(_stringOnTrial, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
-				offenderTextWriters = make3dText(_offender, scene, textScale, textScale, offenderTextColorHex, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth, true, 0, true);
+				offenderTextWriters = make3dText(_offender, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth, true, 0, true);
 			}
 
 			sentenceGuilty = () => {
