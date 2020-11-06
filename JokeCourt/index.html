@@ -246,8 +246,8 @@
 	<script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
 	<script src="https://cdn.jsdelivr.net/gh/BabylonJS/Extensions@master/MeshWriter/meshwriter.min.js"></script>
 	<script src="../scripts/tmi.min.js"></script>
-	<script src="../src/Receivers/relayReceiver.js"></script>
 	<script src="../src/Receivers/tmiReceiver.js"></script>
+	<script src="../src/Receivers/relayReceiver.js"></script>
 </head>
 
 <body>
@@ -267,6 +267,7 @@
 
 		var _badPercent = 0; // what percent of the votes are bad?
 		var _goodPercent = 0; // what percent of the votes are good?
+		var glowLayer; // for handling glow effects.
 		/******* Add the create scene function ******/
 		var createScene = function () {
 			let scene = new BABYLON.Scene(engine);
@@ -409,6 +410,27 @@
 				}
 			}
 
+			var makeTextGlowy = function(text, color, glowStrength, glowVariance, glowSpeed){
+				setTextColor(text, color);
+				if (!glowLayer){
+					glowLayer = new BABYLON.GlowLayer("glow", text.getMesh().getScene(), {
+						mainTextureSamples: 4
+					});
+					var _glowVariance = glowVariance;
+					var _glowSpeed = glowSpeed;
+					var _glowStrength = glowStrength;
+					scene.onBeforeRenderObservable.add(() => {
+						glowLayer.blurKernelSize = _glowVariance * Math.cos(_elapsedTime * _glowSpeed) + _glowStrength;
+					});
+				}
+
+				_glowVariance = glowVariance;
+				_glowSpeed = glowSpeed;
+				_glowStrength = glowStrength;
+				console.log("Setting glowey text");
+				glowLayer.addIncludedOnlyMesh(text.getMesh());
+			}
+
 			/* setup default formatting values */
 			let textScale = 1;
 
@@ -427,6 +449,14 @@
 			let jokeTextMaxWidth = 14;
 			let jokeTextLineCharacterLength = 81;
 
+			let jokeVotingTextColor = new BABYLON.Color4(0.9, 0.9, 0.9, 1);
+			let jokeVotingTextHeight = 0.3;
+			let jokeVotingTextThickness = 0.001;
+			let jokeVotingTextPosition = new BABYLON.Vector3(2, 3.8, 0);
+			let jokeVotingTextAlignmentString = "left";
+			let jokeVotingTextMaxWidth = 14;
+			let jokeVotingTextLineCharacterLength = 81;
+
 			let timerTextColor = new BABYLON.Color4(1, 0, 0, 0);
 			let timerTextHeight = 0.25;
 			let timerTextThickness = 0.001;
@@ -438,15 +468,18 @@
 			let jokePlaceholderText = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.";
 			let offenderPlaceholderText = "anyGivenUserName91129211"
 			let timerPlaceholderText = "Time Left: 0 Seconds";
+			let jokeVotingPlaceholderText = "Jury Votes";
 			/* we probably want to implement some sort of word-wrap solution based on the maximum acceptible width of a line */
 			let jokeTextWriters = make3dText(jokePlaceholderText, scene, textScale, textScale, jokeTextColor, jokeTextHeight, jokeTextThickness, jokeTextPosition, jokeTextAlignmentString, jokeTextMaxWidth, false, jokeTextLineCharacterLength, true);
 			let offenderTextWriters = make3dText(offenderPlaceholderText, scene, textScale, textScale, offenderTextColor, offenderTextHeight, offenderTextThickness, offenderTextPosition, offenderTextAlignmentString, offenderTextMaxWidth);
-			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
-			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(0,1,0,0), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 2, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let jokeGraphLabelWriters = make3dText(jokeVotingPlaceholderText, scene, textScale, textScale, jokeVotingTextColor, jokeVotingTextHeight, jokeVotingTextThickness, jokeVotingTextPosition, jokeVotingTextAlignmentString, jokeVotingTextMaxWidth, false, jokeVotingTextLineCharacterLength, true);
+
+			let barGraphGuilty = makeBarGraph("Bad Joke", scene, 1, new BABYLON.Color4(1,1,1,1), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 4, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
+			let barGraphNotGuilty = makeBarGraph("Good Joke", scene, 1, new BABYLON.Color4(1,1,1,1), 0.25, 0.001, new BABYLON.Vector3(0, 0, 0), 0.5, 4, 0.1, new BABYLON.Color3(0, 1, 0), new BABYLON.Color3(1, 0, 0), 1);
 			let timerTextWriters; // Assign only when timer is active, otherwise, just act as ref.
 
-			barGraphGuilty.handle.position.copyFromFloats(4, 3.5, 0);
-			barGraphNotGuilty.handle.position.copyFromFloats(4, 2.5, 0);
+			barGraphGuilty.handle.position.copyFromFloats(4, 3, 0);
+			barGraphNotGuilty.handle.position.copyFromFloats(4, 2, 0);
 
 			barGraphGuilty.setValue(0.25);
 			barGraphNotGuilty.setValue(0.75);
@@ -488,6 +521,8 @@
 
 			sentenceNotGuilty = () => {
 				console.log("Not Guilty!");
+				const textOriginalColor = jokeTextWriters[0].getSPS().particles[0].color.clone();
+				jokeTextWriters.forEach(writer => { makeTextGlowy(writer, new BABYLON.Color4(1, 0.843, 0, 1), 50, 75, 0.02)});
 			}
 
 			onVotesChanged = () => {
