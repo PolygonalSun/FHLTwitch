@@ -26,10 +26,14 @@ var sentenceGuilty = () => { };
  */
 var sentenceNotGuilty = () => { };
 /**
- *
  * Callback for doing something when the vote tally changes
  */
 var onVotesChanged = () => { };
+
+/**
+ * Callback to handle timer changesS
+ */
+var onTimerChange = () => { };
 
 /**
  * Set user and string data, then use callback
@@ -117,10 +121,15 @@ var startVote = (timeoutInSeconds) => {
     seekingVerdict = true;
     onVotesChanged();
     timeLeft = timeoutInSeconds;
+    onTimerChange();
     timer = setInterval(() => {
-        if (--timeLeft === 0) {
+        if (timeLeft === 0) {
             clearInterval(timer);
         }
+        else {
+            timeLeft--;
+        }
+        onTimerChange();
     }, 1000);
 };
 
@@ -136,6 +145,7 @@ var endVote = () => {
     seekingVerdict = false;
     activeJury = [];
     timeLeft = 0;
+    onTimerChange();
 };
 
 // Websocket Setup
