@@ -246,8 +246,8 @@
 	<script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
 	<script src="https://cdn.jsdelivr.net/gh/BabylonJS/Extensions@master/MeshWriter/meshwriter.min.js"></script>
 	<script src="../scripts/tmi.min.js"></script>
-	<script src="../src/Receivers/relayReceiver.js"></script>
 	<script src="../src/Receivers/tmiReceiver.js"></script>
+	<script src="../src/Receivers/relayReceiver.js"></script>
 </head>
 
 <body>
@@ -267,6 +267,7 @@
 
 		var _badPercent = 0; // what percent of the votes are bad?
 		var _goodPercent = 0; // what percent of the votes are good?
+		var glowLayer; // for handling glow effects.
 		/******* Add the create scene function ******/
 		var createScene = function () {
 			let scene = new BABYLON.Scene(engine);
@@ -409,6 +410,25 @@
 				}
 			}
 
+			var makeTextGlowy = function(text, color, glowStrength, glowVariance, glowSpeed){
+				setTextColor(text, color);
+				if (!glowLayer){
+					glowLayer = new BABYLON.GlowLayer("glow", text.getMesh().getScene());
+					var _glowVariance = glowVariance;
+					var _glowSpeed = glowSpeed;
+					var _glowStrength = glowStrength;
+					scene.onBeforeRenderObservable.add(() => {
+						glowLayer.blurKernelSize = _glowVariance * Math.cos(_elapsedTime * _glowSpeed) + _glowStrength;
+					});
+				}
+
+				_glowVariance = glowVariance;
+				_glowSpeed = glowSpeed;
+				_glowStrength = glowStrength;
+				console.log("Setting glowey text");
+				glowLayer.addIncludedOnlyMesh(text.getMesh());
+			}
+
 			/* setup default formatting values */
 			let textScale = 1;
 
@@ -488,6 +508,8 @@
 
 			sentenceNotGuilty = () => {
 				console.log("Not Guilty!");
+				const textOriginalColor = jokeTextWriters[0].getSPS().particles[0].color.clone();
+				jokeTextWriters.forEach(writer => { makeTextGlowy(writer, new BABYLON.Color4(1, 0.843, 0, 1), 50, 50, 0.25)});
 			}
 
 			onVotesChanged = () => {
