@@ -96,10 +96,12 @@ var handleJudgeInput = (event) => {
     else if (judgeChannel && judgeData.Type === "verdict" && _stringOnTrial.length > 0) {
         if (judgeData.Verdict) {
             totalGuilty++;
+            endVote();
             sentenceGuilty();
         }
         else {
             totalNotGuilty++;
+            endVote();
             sentenceNotGuilty();
         }
     }
